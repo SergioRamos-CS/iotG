@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Granja IoT</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Granja IOT</h1>
+        <p>Monitoramento e Automação de Incubação</p>
+    </header>
+
+    <main>
+        <section class="status-cards">
+            <article class="card">
+                <h3>Temperatura Atual</h3>
+                <p id="txt-temp">-- °C</p>
+                <div id="badge-heater" class="badge">AQUECEDOR: --</div>
+            </article>
+            <article class="card">
+                <h3>Umidade Atual</h3>
+                <p id="txt-hum">-- %</p>
+                <div id="badge-hum" class="badge">UMIDIFICADOR: --</div>
+            </article>
+        </section>
+
+        <section class="charts-section">
+            <article class="chart-box"><canvas id="chartTemp"></canvas></article>
+            <article class="chart-box"><canvas id="chartHum"></canvas></article>
+        </section>
+
+        <section class="controls-section">
+            <article class="card-control">
+                <h3>Configuração de Faixas</h3>
+                <div class="input-row">
+                    <div><label>Temp Mín</label><input type="number" step="0.1" id="in-t-min"></div>
+                    <div><label>Temp Máx</label><input type="number" step="0.1" id="in-t-max"></div>
+                </div>
+                <div class="input-row">
+                    <div><label>Umid Mín</label><input type="number" id="in-h-min"></div>
+                    <div><label>Umid Máx</label><input type="number" id="in-h-max"></div>
+                </div>
+                <button onclick="saveConfig()" class="btn btn-save">Atualizar Sistema</button>
+            </article>
+
+            <article class="card-control">
+                <h3>Exportação de Dados</h3>
+                <div class="input-row">
+                    <div><label>Data Início</label><input type="datetime-local" id="f-ini"></div>
+                    <div><label>Data Fim</label><input type="datetime-local" id="f-fim"></div>
+                </div>
+                <button onclick="downloadCSV()" class="btn btn-csv">Gerar Relatório .CSV</button>
+            </article>
+        </section>
+    </main>
+
+    <footer><p>&copy; 2026 - PROJETO INTEGRADOR - Controle de Granja Automatizado</p></footer>
+
+    <script>
+        const cfg = { responsive: true, maintainAspectRatio: false };
+        const chartT = new Chart(document.getElementById('chartTemp'), { type: 'line', data: { labels: [], datasets: [{ label: 'Temp (°C)', data: [], borderColor: '#e74c3c', fill: true, backgroundColor: 'rgba(231, 76, 60, 0.1)' }]}, options: cfg });
+        const chartH = new Chart(document.getElementById('chartHum'), { type: 'line', data: { labels: [], datasets: [{ label: 'Umid (%)', data: [], borderColor: '#3498db', fill: true, backgroundColor: 'rgba(52, 152, 219, 0.1)' }]}, options: cfg });
+
+        async function update() {
+            const res = await fetch('/api/atual');
+            const data = await res.json();
+            if(!data.temp) return;
+
+            document.getElementById('txt-temp').innerText = data.temp + " °C";
+            document.getElementById('txt-hum').innerText = data.hum + " %";
+            
+            const bh = document.getElementById('badge-heater');
+            bh.innerText = "AQUECEDOR: " + data.heater;
+            bh.style.background = data.heater === "ON" ? "#e74c3c" : "#95a5a6";
+
+            const bu = document.getElementById('badge-hum');
+            bu.innerText = "UMIDIFICADOR: " + data.humidifier;
+            bu.style.background = data.humidifier === "ON" ? "#3498db" : "#95a5a6";
+
+            if (chartT.data.labels.length > 20) { chartT.data.labels.shift(); chartT.data.datasets[0].data.shift(); chartH.data.labels.shift(); chartH.data.datasets[0].data.shift(); }
+            chartT.data.labels.push(data.time); chartT.data.datasets[0].data.push(data.temp);
+            chartH.data.labels.push(data.time); chartH.data.datasets[0].data.push(data.hum);
+            chartT.update(); chartH.update();
+
+            if(!document.getElementById('in-t-min').value) {
+                document.getElementById('in-t-min').value = data.config.t_min;
+                document.getElementById('in-t-max').value = data.config.t_max;
+                document.getElementById('in-h-min').value = data.config.h_min;
+                document.getElementById('in-h-max').value = data.config.h_max;
+            }
+        }
+
+        async function saveConfig() {
+            await fetch('/api/config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
+                t_min: parseFloat(document.getElementById('in-t-min').value),
+                t_max: parseFloat(document.getElementById('in-t-max').value),
+                h_min: parseFloat(document.getElementById('in-h-min').value),
+                h_max: parseFloat(document.getElementById('in-h-max').value)
+            })});
+            alert("Configurações Salvas!");
+        }
+
+        function downloadCSV() {
+            window.location.href = `/exportar?inicio=${document.getElementById('f-ini').value}&fim=${document.getElementById('f-fim').value}`;
+        }
+        setInterval(update, 2000);
+    </script>
+</body>
+</html>
