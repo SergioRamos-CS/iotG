@@ -1,4 +1,4 @@
-# 🐣 Smart Poultry IoT - Monitoramento de Incubação
+# 🐣 IoT - Monitoramento de Incubação
 
 Este projeto é um sistema para monitoramento e controle automatizado de incubadoras avícolas. Ele utiliza Python e Flask para criar um dashboard em tempo real que gerencia temperatura e umidade, simulando o comportamento físico real de um ambiente de granja.
 
