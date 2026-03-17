@@ -3,8 +3,8 @@ import time
 import random
 
 # Santos é quente (30°C) e úmido (40%)
-TEMP_AMBIENTE = 30.0
-HUM_AMBIENTE = 40
+TEMP_AMBIENTE = 35.0
+HUM_AMBIENTE = 45
 URL_DADOS = "http://127.0.0.1:5000/api/dados"
 URL_CONFIG = "http://127.0.0.1:5000/api/config"
 
