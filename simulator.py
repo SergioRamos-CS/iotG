@@ -5,8 +5,11 @@ import random
 # Santos é quente (30°C) e úmido (40%)
 TEMP_AMBIENTE = 35.0
 HUM_AMBIENTE = 45
-URL_DADOS = "http://127.0.0.1:5000/api/dados"
-URL_CONFIG = "http://127.0.0.1:5000/api/config"
+# --- SUBSTITUA ABAIXO PELA SUA URL DA VERCEL ---
+BASE_URL = "https://iot-g.vercel.app" 
+
+URL_DADOS = f"{BASE_URL}/api/dados"
+URL_CONFIG = f"{BASE_URL}/api/config"
 
 temp_atual = TEMP_AMBIENTE
 hum_atual = HUM_AMBIENTE
