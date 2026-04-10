@@ -59,18 +59,52 @@ def receber_dados():
     db.session.commit()
     return jsonify({"status": "sucesso"}), 201
 
-@app.route('/api/atual')
+@app.route('/api/atual', methods=['GET', 'POST'])
 def dados_atuais():
-    dado = DadosSensor.query.order_by(DadosSensor.id.desc()).first()
     conf = Configuracao.query.first()
+    
+    if request.method == 'POST':
+        data = request.json
+        temp_atual = data.get('temperature')
+        hum_atual = data.get('humidity')
+
+        # Lógica de Controle (Termostato e Higrostato)
+        # Se a temperatura for menor que a mínima, liga o aquecedor
+        status_heater = "ON" if temp_atual < conf.t_min else "OFF"
+        # Se a umidade for menor que a mínima, liga o umidificador
+        status_humidifier = "ON" if hum_atual < conf.h_min else "OFF"
+
+        # Salva a leitura real no banco de dados para o histórico
+        novo_registro = DadosSensor(
+            temperatura=temp_atual,
+            umidade=hum_atual,
+            aquecedor=status_heater,
+            umidificador=status_humidifier,
+            fase="Incubação" # Você pode tornar isso dinâmico depois
+        )
+        db.session.add(novo_registro)
+        db.session.commit()
+       
+        # Responde ao ESP32 com os comandos de ativação
+        return jsonify({
+            "heater": status_heater,
+            "humidifier": status_humidifier,
+            "t_min": conf.t_min,
+            "h_min": conf.h_min
+        })
+
+    # Mantém o suporte ao GET para o seu Dashboard (index.html) consultar
+    dado = DadosSensor.query.order_by(DadosSensor.id.desc()).first()
     if dado:
         return jsonify({
-            "temp": dado.temperatura, "hum": dado.umidade,
-            "heater": dado.aquecedor, "humidifier": dado.umidificador,
+            "temp": dado.temperatura, 
+            "hum": dado.umidade,
+            "heater": dado.aquecedor, 
+            "humidifier": dado.umidificador,
             "time": dado.timestamp.strftime('%H:%M:%S'),
             "config": {"t_min": conf.t_min, "t_max": conf.t_max, "h_min": conf.h_min, "h_max": conf.h_max}
         })
-    return jsonify({})
+    return jsonify({"erro": "Sem dados disponíveis"}), 404
 
 @app.route('/exportar')
 def exportar_csv():
